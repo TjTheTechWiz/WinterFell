@@ -1,6 +1,6 @@
 #include "PhysicsComponent.h"
 
-using namespace BRComponentType;
+using namespace BlueRapsolEnums;
 
 PhysicsComponent::PhysicsComponent() {
 	type = Physics;
@@ -18,4 +18,13 @@ void PhysicsComponent::SetVelocity(float newX, float newY) {
 
 Vector2 PhysicsComponent::GetVelocity() {
 	return velocity;
+}
+
+AABB PhysicsComponent::GetBounds() {
+	return bounds;
+}
+
+void PhysicsComponent::SetBounds(Vector2 newMin, Vector2 newMax) {
+	bounds.min = newMin;
+	bounds.max = newMax;
 }
