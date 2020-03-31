@@ -23,24 +23,18 @@
 #include "AudioSystem.h"
 #include "GraphicsSystem.h"
 #include "PhysicsSystem.h"
-#include "InputSystem.h"
 #include <SFML/Graphics.hpp>
-#include <chrono>
 
 class BlueRapsolEngine {
 
-public: 
-	void Run(HINSTANCE hInstance);
-
-protected:
+public:
 	BlueRapsolEngine(HINSTANCE hInstance);
 	//~BlueRapsolEngine();
 
 	KeyboardListener kbInput;
 	MouseListener mbInput;
 
-	//Check if it's the onyl instance
-	bool IsOnlyInstance(LPCTSTR appName);
+	void Run(HINSTANCE hInstance);
 
 	//Check for sufficient storage space
 	bool ChkStorage(unsigned long long requiredBytes, LPCWSTR directory);
@@ -52,43 +46,31 @@ protected:
 	void DisplayCPUArch();
 	void DisplayCPUSpeed();
 
-	int Instantiate(); //Creates a square shape at origin
-	int Instantiate(std::string setKey);
-	int Instantiate(std::string setKey, float getX, float getY);
-	int Instantiate(std::string setKey, BRDataType::Vector2 setPos);
-	int Instantiate(std::string setKey, float getX, float getY, float width, float height);
-	int Instantiate(std::string setKey, std::string setSprite, float getX, float getY);
-	int Instantiate(std::string setKey, std::string setSprite, float getX, float getY, TagType getTag);
-	int Instantiate(std::string setKey, std::string setSprite, float getX, float getY, float width, float height);
-	int Instantiate(std::string setKey, std::string setSprite, float getX, float getY, float width, float height, TagType getTag);
-
-	void SetTexture(std::string objKey, std::string setSprite);
-
 	virtual void GameStart();
 	virtual void GameUpdate();
-	virtual bool Initialize();
+	void PhysicsUpdate();
 
+	int Instantiate(); //Creates a square shape at origin
+	void SetOBjPosition(int getObjIndex, float setX, float setY);
+	//GameObject* Instantiate(ShapeType setShape, BRDataType::Vector3 setPosition);
+	//void SetPosition(GameObject & targetObject, BRDataType::Vector3 newPosition);
+	//void SetScale(GameObject & targetObject, BRDataType::Vector3 newScalar);
+	//void SetEulerAngle(GameObject & targetObject, BRDataType::Vector3 newEulerAngle);
+	//void SetTransform(GameObject & targetObject, sf::Transform newTransform);
+
+private:
 	AudioSystem audioSys;
 	GraphicsSystem graphicsSys;
 	PhysicsSystem physicsSys;
-	InputSystem inputSys;
-	float deltaTime;
 
 	std::vector<std::unique_ptr<GameObject>> allObjects; // List of all the objects.
-	//std::vector<GameObject*> allObjects; // List of all the objects.
-	std::map<std::string, int> getObjIndex; //Get the index value from name
+	std::vector<sf::RectangleShape*> allRenderObjects; // List of all the renderable items
 
-private:
 	GameTimer mTimer;
-	int loopsPerTick = 128;
-	int loopCounter = 0;
-	sf::Time time;
-	sf::Clock clock;
-
 	bool isInitializing = true;
-	bool isPaused = false;
 
+	bool IsOnlyInstance(LPCTSTR appName);
 	void Initialize(sf::RenderWindow & renderWindow);
 	void GameLoop(sf::RenderWindow & renderWindow);
-	//void DrawRenderObjects(sf::RenderWindow & renderWindow);
+	void DrawRenderObjects(sf::RenderWindow & renderWindow, const std::vector<sf::RectangleShape*>& ritems);
 };

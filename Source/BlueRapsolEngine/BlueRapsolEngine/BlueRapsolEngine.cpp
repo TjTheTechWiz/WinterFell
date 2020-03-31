@@ -1,12 +1,14 @@
 //*************************************************************************** 
 // File name: BlueRapsolEnigne.cpp
-// Authors: Terence Stewart (C) 2018 All Rights Reserved.
-// Version: 1 (beta)
+// Authors: Joseph Malibiran, Tsuzuri Okada, Terence Stewart (C) 2018 All Rights Reserved. 
+// Created: Sept. 19, 2018
+// Last Updated: Feb. 21, 2019
+// Version: 0.1.0A
 // Description: 
-//   This Class will represent the Game Engine layer of the Blue Rapsol Engine
+//   This Class will represent the Game Application layer of the Blue Rapsol Engine
 // *****************************************************************************
 
-#include <stdio.h>
+
 #include "BlueRapsolEngine.h"; 
 //#include <iostream> 
 
@@ -26,6 +28,12 @@ const LONGLONG toMB = 1024 * toKB;
 const LONGLONG toGB = 1024 * toMB;
 
 BlueRapsolEngine::BlueRapsolEngine(HINSTANCE hInstance) {
+	//System Check
+	OutputDebugString(L"\nChecking if another instance of the application is running...\n");
+	if (!IsOnlyInstance(MUTEX_APP_NAME)) {
+		return;
+	}
+
 	OutputDebugString(L"\nChecking System Memory...\n");
 	ChkMem();
 	ChkStorage(REQUIRED_STORAGE, STORAGE_DIRECTORY); //TODO terminate on false
@@ -35,24 +43,14 @@ BlueRapsolEngine::BlueRapsolEngine(HINSTANCE hInstance) {
 	DisplayCPUSpeed();
 }
 
-bool BlueRapsolEngine::Initialize() {
-
-	//System Check
-	if (!IsOnlyInstance(MUTEX_APP_NAME)) {
-		return false;
-	}
-
-	return true;
-}
-
 void BlueRapsolEngine::Run(HINSTANCE hInstance) {
-	sf::RenderWindow window(sf::VideoMode(1250, 700), "Blue Rapsol Game"); //Creates the window
+	sf::RenderWindow window(sf::VideoMode(1280, 720), "Blue Rapsol Game"); //Creates the window
 	isInitializing = true;
 
 	//Initialization
 	BlueRapsolEngine::Initialize(window);
 
-	//Program loop
+	//TODO Program loop. Move loop from d3dApp.cpp
 	BlueRapsolEngine::GameLoop(window);
 
 }
@@ -89,190 +87,111 @@ void BlueRapsolEngine::GameLoop(sf::RenderWindow & renderWindow) {
 		GameStart();
 	}
 
-	while (renderWindow.isOpen()) {
+	while (renderWindow.isOpen()){
 		sf::Event event;
-		while (renderWindow.pollEvent(event)) {
+		while (renderWindow.pollEvent(event)){
 			if (event.type == sf::Event::Closed) { // "close requested" event: we close the window
 				renderWindow.close();
 			}
 		}
 
-		//
-		if (loopCounter >= loopsPerTick) {
-			loopCounter = 0;
-
-			time = clock.restart();
-			deltaTime = time.asSeconds();
-
-			if (!isPaused) {
-				mTimer.Tick(); //Ticks the timer
-				GameUpdate(); //Update game logic
-				physicsSys.UpdatePhysics(allObjects, 0, 1, deltaTime); //TODO: handle player index better
-			}
-			graphicsSys.DrawRenderObjects(renderWindow, allObjects);
-		}
-		else {
-			loopCounter++;
-		}
-
+		mTimer.Tick(); //Ticks the timer
+		GameUpdate(); //Update game logic
+		PhysicsUpdate(); //Simulate Physics
+		DrawRenderObjects(renderWindow, allRenderObjects); //Draw Object in the scene
 	}
 }
 
 //this code executes once at the beginning
-//NOTICE: Moved to BlueRapsolApp.cpp! Write code there instead as it overrides these functions.
 void BlueRapsolEngine::GameStart() {
+	std::wstring msg; //Used for formatting debug messages
 
+	//Example
+	//Instantiate() creates a new GameObject and stores it in an array. Instantiate() returns the index position so you can reference the object later on.
+	//Note: It uses a unique pointer so you cannot have multiple references of the same object. So you access the object through allObjects[ObjIndex].get().
+	int ObjIndex = Instantiate(); //Creates a new GameObject and since it is the first one its index will be '0'
+	allObjects[ObjIndex].get()->GetPhysicsComponent()->SetVelocity(0.1f, 0.1f); //The GameObject will visually move diagonally to the bottom right. Use GetPhysicsComponent() to access Physics component properties.
+	
+	Instantiate(); //Creates a second new GameObject and since it is the second one its index will be '1'
+
+	//Debugging Example
+	msg = L"Value of ObjIndex: " + std::to_wstring(ObjIndex) + L"\n";
+	OutputDebugString(msg.c_str());
 }
 
 //This code executes every tick
-//NOTICE: Moved to BlueRapsolApp.cpp! Write code there instead as it overrides these functions.
 void BlueRapsolEngine::GameUpdate() {
-	
+
+	//Example
+	//This moves our second created object (index 1) towards the right by 0.2f every tick
+	float newPositionX = allObjects[1].get()->GetPosition().x + 0.2f; //The original x position + 0.2f
+	float newPositionY = allObjects[1].get()->GetPosition().y; //The original y position doesnt change
+	allObjects[1].get()->SetPosition(newPositionX, newPositionY); //We pass the values to the object with SetPosition()
+}
+
+void BlueRapsolEngine::DrawRenderObjects(sf::RenderWindow & renderWindow, const std::vector<sf::RectangleShape*>& ritems) {
+	std::wstring msg; //Used for formatting debug messages
+	sf::RectangleShape *shapePtr;
+	sf::RectangleShape shapeHolder;
+
+	renderWindow.clear(sf::Color::Black); //Clear the window with black color
+
+	//TEMP
+	for (size_t i = 0; i < ritems.size(); ++i) { //Draw all render items
+		sf::RectangleShape newShape(sf::Vector2f(50, 50));
+		newShape.setPosition(allObjects[i].get()->GetPosition());
+		shapePtr = &newShape;
+		shapeHolder = *shapePtr;
+		renderWindow.draw(shapeHolder);
+	}
+
+	/*sf::RectangleShape test(sf::Vector2f(50, 50));
+	test.setPosition(sf::Vector2f(10, 10));
+	shapePtr = &test;
+	shapeHolder = *shapePtr;
+	renderWindow.draw(shapeHolder);*/
+
+	//msg = L"ritems.size(): " + std::to_wstring(ritems.size()) + L"\n";
+	//OutputDebugString(msg.c_str());
+
+	//for (size_t i = 0; i < ritems.size(); ++i) { //Draw all render items
+	//	//auto ri = *ritems[i];
+	//	shapePtr = ritems[i];
+	//	shapeHolder = *shapePtr;
+	//	//shapeHolder.setFillColor(sf::Color::White);
+	//	renderWindow.draw(shapeHolder);
+	//}
+
+	renderWindow.display(); //End the current frame
 }
 
 int BlueRapsolEngine::Instantiate() {
 	auto objHolder = std::make_unique<GameObject>();
+	//auto drawableHolder = std::make_unique<sf::RectangleShape>(sf::Vector2f(50, 50));
+	sf::RectangleShape drawableHolder(sf::Vector2f(50, 50));
+	sf::RectangleShape *drawablePtr;
+	drawablePtr = &drawableHolder;
+	//drawableHolder->setFillColor(sf::Color::White);
 
-	objHolder.get()->AddComponent(ComponentType::Transform);
+	objHolder->SetDrawableIndex(allRenderObjects.size()); //save the index of its assigned sf::drawable
 
 	allObjects.push_back(std::move(objHolder));
-	getObjIndex.insert(std::make_pair(std::to_string(getObjIndex.size() - 1), getObjIndex.size() - 1));
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
+	allRenderObjects.push_back(&drawableHolder);
 
 	return allObjects.size() - 1; //return allObjects index 
 }
 
-int BlueRapsolEngine::Instantiate(std::string setKey) {
-	auto objHolder = std::make_unique<GameObject>();
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	allObjects.push_back(std::move(objHolder));
-	getObjIndex.insert(std::make_pair(setKey, allObjects.size() - 1));
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	return allObjects.size() - 1; //return allObjects index 
+void BlueRapsolEngine::SetOBjPosition(int getObjIndex, float setX, float setY) {
+	allObjects[getObjIndex].get()->SetPosition(setX, setY);
 }
 
-int BlueRapsolEngine::Instantiate(std::string setKey, float xPos, float yPos) {
-	auto objHolder = std::make_unique<GameObject>(xPos, yPos);
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	allObjects.push_back(std::move(objHolder));
-	getObjIndex.insert(std::make_pair(setKey, allObjects.size() - 1));
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	return allObjects.size() - 1; //return allObjects index 
-}
-
-int BlueRapsolEngine::Instantiate(std::string setKey, BRDataType::Vector2 setPos) {
-	auto objHolder = std::make_unique<GameObject>(setPos.x, setPos.y);
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	allObjects.push_back(std::move(objHolder));
-	getObjIndex.insert(std::make_pair(setKey, allObjects.size() - 1));
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	return allObjects.size() - 1; //return allObjects index 
-}
-
-int BlueRapsolEngine::Instantiate(std::string setKey, float xPos, float yPos, float width, float height) {
-	auto objHolder = std::make_unique<GameObject>(xPos, yPos, width, height);
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	allObjects.push_back(std::move(objHolder));
-	getObjIndex.insert(std::make_pair(setKey, allObjects.size() - 1));
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	return allObjects.size() - 1; //return allObjects index 
-}
-
-int BlueRapsolEngine::Instantiate(std::string setKey, std::string setSprite, float xPos, float yPos) {
-	auto objHolder = std::make_unique<GameObject>(xPos, yPos);
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	objHolder.get()->GetRenderComponent()->renderObjPtr.get()->setTexture(graphicsSys.textureMap[setSprite]);
-	objHolder.get()->GetRenderComponent()->renderObjPtr.get()->setScale(sf::Vector2f(1.0f, 1.0f));
-	allObjects.push_back(std::move(objHolder));
-	getObjIndex.insert(std::make_pair(setKey, allObjects.size() - 1));
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	return allObjects.size() - 1; //return allObjects index 
-}
-
-int BlueRapsolEngine::Instantiate(std::string setKey, std::string setSprite, float xPos, float yPos, TagType getType) {
-	auto objHolder = std::make_unique<GameObject>(xPos, yPos);
-
-	objHolder.get()->tag = getType;
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	if (getType == TagType::Wall || getType == TagType::Player || getType == TagType::Bullet || getType == TagType::Hazard) {
-		objHolder.get()->AddComponent(ComponentType::Renderer);
-		objHolder.get()->AddComponent(ComponentType::Physics);
-	}
-
-	objHolder.get()->GetRenderComponent()->renderObjPtr.get()->setTexture(graphicsSys.textureMap[setSprite]);
-	objHolder.get()->GetRenderComponent()->renderObjPtr.get()->setScale(sf::Vector2f(1.0f, 1.0f));
-	allObjects.push_back(std::move(objHolder));
-	getObjIndex.insert(std::make_pair(setKey, allObjects.size() - 1));
-
-	return allObjects.size() - 1; //return allObjects index 
-}
-
-int BlueRapsolEngine::Instantiate(std::string setKey, std::string setSprite, float xPos, float yPos, float colliderWidth, float colliderHeight) {
-	auto objHolder = std::make_unique<GameObject>(xPos, yPos, colliderWidth, colliderHeight);
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	objHolder.get()->GetRenderComponent()->renderObjPtr.get()->setTexture(graphicsSys.textureMap[setSprite]);
-	//objHolder.get()->GetRenderComponent()->renderObjPtr.get()->setScale(sf::Vector2f(scaleWidth, scaleHeight));
-	allObjects.push_back(std::move(objHolder));
-	getObjIndex.insert(std::make_pair(setKey, allObjects.size() - 1));
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	return allObjects.size() - 1; //return allObjects index 
-}
-
-int BlueRapsolEngine::Instantiate(std::string setKey, std::string setSprite, float xPos, float yPos, float colliderWidth, float colliderHeight, TagType getType) {
-	auto objHolder = std::make_unique<GameObject>(xPos, yPos, colliderWidth, colliderHeight);
-	objHolder.get()->tag = getType;
-
-	objHolder.get()->AddComponent(ComponentType::Transform);
-
-	if (getType == TagType::Wall || getType == TagType::Player || getType == TagType::Bullet || getType == TagType::Hazard) {
-		objHolder.get()->AddComponent(ComponentType::Renderer);
-		objHolder.get()->AddComponent(ComponentType::Physics);
-	}
-
-	objHolder.get()->GetRenderComponent()->renderObjPtr.get()->setTexture(graphicsSys.textureMap[setSprite]);
-	//objHolder.get()->GetRenderComponent()->renderObjPtr.get()->setScale(sf::Vector2f(scaleWidth, scaleHeight));
-	allObjects.push_back(std::move(objHolder));
-	getObjIndex.insert(std::make_pair(setKey, allObjects.size() - 1));
-
-	return allObjects.size() - 1; //return allObjects index 
-}
-
-void BlueRapsolEngine::SetTexture(std::string objKey, std::string sprite) {
-	allObjects[getObjIndex[objKey]].get()->GetRenderComponent()->renderObjPtr.get()->setTexture(graphicsSys.textureMap[sprite]);
+void BlueRapsolEngine::PhysicsUpdate() {
+	physicsSys.UpdatePhysics(allObjects);
 }
 
 //Insures only one of this application is running
 bool BlueRapsolEngine::IsOnlyInstance(LPCTSTR appName) {
 	HANDLE handle = CreateMutex(NULL, TRUE, appName);
-
-	OutputDebugString(L"\nChecking if another instance of the application is running...\n");
 
 	if (GetLastError() != ERROR_SUCCESS) {
 		OutputDebugString(L"Error: An instance of this appication is already running\n");
@@ -346,7 +265,7 @@ void BlueRapsolEngine::DisplayCPUArch() {
 	//Info on https://msdn.microsoft.com/en-us/library/windows/desktop/ms724958(v=vs.85).aspx
 	switch (system.wProcessorArchitecture) {
 	case PROCESSOR_ARCHITECTURE_ALPHA:
-		OutputDebugString(L"CPU Architecture: Alpha 32 bit by Digital Equipment Corp\n");
+		OutputDebugString(L"CPU Architecture : Alpha 32 bit by Digital Equipment Corp\n");
 		return;
 	case PROCESSOR_ARCHITECTURE_ALPHA64:
 		OutputDebugString(L"CPU Architecture: Alpha 64 bit by Digital Equipment Corp\n");

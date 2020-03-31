@@ -47,21 +47,6 @@ namespace BRDataType {
 			x = getX; y = getY; z = getZ; w = getW;
 		}
 	};
-
-	struct AABB {
-		Vector2 min; //Bottom Left
-		Vector2 max; //Top Right
-
-		AABB() {
-			min.x = 0; min.y = 0; 
-			max.x = 0; max.y = 0;
-		}
-
-		AABB(Vector2 getMin, Vector2 getMax) {
-			min = getMin;
-			max = getMax;
-		}
-	};
 }
 
 
