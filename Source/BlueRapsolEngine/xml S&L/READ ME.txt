@@ -1,7 +1,0 @@
-Saves and load concept done (XML)
-couldnt understand saving the entire scene
-but i got storing the information of the character in my sense its the checker peice as a xml 
-click load and it relocaated the player to iits previous location
-
-
-will see the savedata xml in the folder above
