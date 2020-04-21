@@ -35,7 +35,7 @@ private:
 
 	float bulletSpeed = 240.0f;
 	float playerSpeed = 80.0f;
-	float hazardSpeed = 140.0f;
+	float hazardSpeed = 200.0f;
 	int recycledBullets[20]; //TODO use a stack instead and utilize bullets after being removed from the level instead of simply iterating through the bullets
 	int maxBullets = 20;
 	int nextBullet = 0;
